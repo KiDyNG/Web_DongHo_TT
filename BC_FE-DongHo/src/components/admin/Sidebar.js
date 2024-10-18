@@ -13,7 +13,7 @@ import logo from "../../assets/customer/images/logo-xd.png";
 
 const { Sider } = Layout;
 
-const Sidebar = () => {
+const Sidebar = ({ collapsed, onCollapse }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -55,22 +55,30 @@ const Sidebar = () => {
 
   return (
     <Sider
-      width={200}
+      collapsible
+      collapsed={collapsed}
+      onCollapse={onCollapse}
       style={{
-        background: "#fff",
         overflow: "auto",
         height: "100vh",
-        position: "fixed",
+        position: "sticky",
         left: 0,
+        top: 0,
+        bottom: 0,
       }}
     >
       <div style={{ padding: "16px", textAlign: "center" }}>
-        <Image src={logo} alt="logo" width={150} preview={false} />
+        <Image
+          src={logo}
+          alt="logo"
+          width={collapsed ? 40 : 80}
+          preview={false}
+        />
       </div>
       <Menu
+        theme="dark"
         mode="inline"
         defaultSelectedKeys={["dashboard"]}
-        style={{ borderRight: 0 }}
         items={menuItems}
       />
     </Sider>

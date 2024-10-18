@@ -58,4 +58,6 @@ router.get(
 router.get("/logout", middleware.middlewareAdmin, AuthController.logoutAdmin);
 router.post("/login", AuthController.handleLoginAdmin);
 
+router.get("/statistical", OrderController.statisticalOrder);
+
 module.exports = router;

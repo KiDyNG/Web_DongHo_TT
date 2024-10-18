@@ -1,4 +1,8 @@
 const db = require("../../models/index");
+const { Op, Sequelize } = require("sequelize");
+const moment = require("moment-timezone");
+
+moment.tz.setDefault("Asia/Ho_Chi_Minh");
 
 const OrderDashBoard = async (req, res) => {
   try {
@@ -161,10 +165,93 @@ const getOrderDetail = async (req, res) => {
   }
 };
 
+const statisticalOrder = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || moment().year();
+    const month = req.query.month ? parseInt(req.query.month) : null;
+
+    let startDate, endDate, timeUnit;
+
+    if (month) {
+      // Monthly revenue statistics
+      startDate = moment()
+        .year(year)
+        .month(month - 1)
+        .startOf("month");
+      endDate = moment(startDate).endOf("month");
+      timeUnit = "day";
+    } else {
+      // Yearly revenue statistics
+      startDate = moment().year(year).startOf("year");
+      endDate = moment(startDate).endOf("year");
+      timeUnit = "month";
+    }
+
+    // Fetch revenue statistics
+    const revenueStats = await Promise.all(
+      Array.from(
+        { length: endDate.diff(startDate, timeUnit) + 1 },
+        async (_, index) => {
+          const start = moment(startDate).add(index, timeUnit);
+          const end = moment(start).endOf(timeUnit);
+
+          const result = await db.Order.findOne({
+            where: {
+              createdAt: {
+                [Op.gte]: start.toDate(),
+                [Op.lte]: end.toDate(),
+              },
+            },
+            attributes: [
+              [
+                Sequelize.fn(
+                  "COALESCE",
+                  Sequelize.fn("SUM", Sequelize.col("total")),
+                  0
+                ),
+                "revenue",
+              ],
+              [Sequelize.fn("COUNT", Sequelize.col("id")), "orderCount"],
+            ],
+            raw: true,
+          });
+
+          const stat = {
+            month: start.format("MMM"),
+            revenue: parseFloat(result?.revenue || 0),
+            orderCount: parseInt(result?.orderCount || 0),
+          };
+
+          if (timeUnit === "day") {
+            stat.day = start.format("DD");
+          }
+
+          return stat;
+        }
+      )
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        yearlyStats: revenueStats,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching statistics", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      data: {},
+    });
+  }
+};
+
 module.exports = {
   OrderDashBoard,
   orderIndex,
   confirmOrder,
   deleteOrder,
   getOrderDetail,
+  statisticalOrder,
 };
