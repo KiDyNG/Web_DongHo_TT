@@ -2,48 +2,6 @@ const db = require("../../models/index");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
-const addOrder = async (req, res) => {
-  try {
-    let cart = req.body.cart;
-    let userOrder = req.body.user;
-    if (cart.length === 0) {
-      return res.status(400).json({
-        detail: "Vui lòng thêm sản phẩm vào giỏ hàng để đặt hàng !",
-      });
-    } else {
-      if (
-        !req.body.user.name ||
-        !req.body.user.phone ||
-        !req.body.user.payment ||
-        !req.body.user.address
-      ) {
-        return res.status(400).json({
-          detail: "Vui lòng điền đầy đủ thông tin đặt hàng !",
-        });
-      } else {
-        if (req.body.user.payment == "off") {
-          await orderOff(cart, userOrder);
-          return res.status(200).json({
-            success: true,
-            payment: "Thanh toán khi nhận hàng",
-            message: "Đặt hàng thành công !",
-          });
-        }
-        if (req.body.user.payment == "paypal") {
-          await orderOnl(cart, userOrder);
-          return res.status(200).json({
-            success: true,
-            payment: "Thanh toán paypal",
-            message: "Đặt hàng thành công !",
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.log(error);
-  }
-};
-
 const addOrderOff = async (req, res) => {
   try {
     let cart = req.body.cart;
@@ -105,25 +63,17 @@ const addOrderOnl = async (req, res) => {
       },
       quantity: item.cartQuantity,
     }));
-    const newCart = cart.map((item) => ({
-      id: item.id,
-      cartQuantity: item.cartQuantity,
-      price: item.price,
-    }));
+    const orderSession = await orderOnlSession(cart, userOrder);
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
-      mode: "payment",
-      success_url: "http://localhost:3000/order_success",
-      cancel_url: "http://localhost:3000/order_failed",
-      payment_intent_data: {
-        metadata: {
-          cart: JSON.stringify(newCart),
-          userOrder: JSON.stringify(userOrder),
-        },
+      metadata: {
+        orderId: JSON.stringify(orderSession.id),
       },
+      mode: "payment",
+      success_url: `${process.env.ORDER_RETURN_SUCCESS}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.ORDER_RETURN_CANCEL}?order_session=${orderSession.id}&session_id={CHECKOUT_SESSION_ID}`,
     });
-    //await orderOnl(cart, userOrder);
     return res.status(200).json({
       success: true,
       id: session.id,
@@ -160,13 +110,13 @@ const orderOff = async (cart, userOrder) => {
   }
 };
 
-const orderOnl = async (cart, userOrder) => {
+const orderOnlSession = async (cart, userOrder) => {
   try {
     let total = 0;
     for (let i = 0; i < cart.length; i++) {
       total += cart[i].price * cart[i].cartQuantity;
     }
-    let orderInsert = await db.Order.create({
+    let orderInsert = await db.Order_Sessions.create({
       payment: "Thanh toán Online",
       status: 0,
       name: userOrder.name,
@@ -176,12 +126,13 @@ const orderOnl = async (cart, userOrder) => {
       UserId: userOrder.user_id,
     });
     for (let i = 0; i < cart.length; i++) {
-      await db.Order_Product.create({
+      await db.Order_Product_Session.create({
         ProductId: cart[i].id,
         OrderId: orderInsert.id,
         quantity: cart[i].cartQuantity,
       });
     }
+    return orderInsert;
   } catch (error) {
     console.log(error);
   }
@@ -377,19 +328,108 @@ const handleUpdateConfirm = async (req, res) => {
   }
 };
 
-const listenWebhook = async (req, res) => {
-  try {
-    const data = req.body.data.object;
-    const cart = JSON.parse(data.metadata.cart);
-    const userOrder = JSON.parse(data.metadata.userOrder);
-    return await orderOnl(cart, userOrder);
-  } catch (error) {
-    console.log(error);
+const createOrderWebhook = async ({
+  orderId,
+  action,
+  stripeSessionId = "",
+}) => {
+  const [orderSession, orderProductSession] = await Promise.all([
+    db.Order_Sessions.findOne({
+      where: { id: orderId },
+      attributes: { exclude: ["createdAt", "updatedAt"] },
+      raw: true,
+    }),
+    db.Order_Product_Session.findAll({
+      where: {
+        OrderId: orderId,
+      },
+      raw: true,
+    }),
+  ]);
+
+  if (!orderSession || orderProductSession.length === 0) return;
+
+  switch (action) {
+    case "create":
+      return await Promise.all([
+        db.Order.create({
+          ...orderSession,
+          stripeSessionId,
+        }),
+        ...orderProductSession.map((productSession) =>
+          db.Order_Product.create({
+            ...productSession,
+          })
+        ),
+        db.Order_Sessions.destroy({ where: { id: orderId } }),
+        db.Order_Product_Session.destroy({ where: { OrderId: orderId } }),
+      ]);
+
+    case "delete":
+      return await Promise.all([
+        db.Order_Sessions.destroy({ where: { id: orderId } }),
+        db.Order_Product_Session.destroy({ where: { OrderId: orderId } }),
+      ]);
+
+    default:
+      break;
   }
 };
 
+const handleWebhookOrder = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.END_POINT_SECRET
+    );
+  } catch (err) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case "checkout.session.completed":
+      const checkoutCompleted = event.data.object;
+      return await createOrderWebhook({
+        orderId: JSON.parse(checkoutCompleted.metadata.orderId),
+        action: "create",
+        stripeSessionId: checkoutCompleted.id,
+      });
+
+    case "checkout.session.async_payment_failed":
+      const checkoutFailed = event.data.object;
+      return await createOrderWebhook({
+        orderId: JSON.parse(checkoutFailed.metadata.orderId),
+        action: "delete",
+      });
+
+    case "checkout.session.expired":
+      const checkoutExpired = event.data.object;
+      return await createOrderWebhook({
+        orderId: JSON.parse(checkoutExpired.metadata.orderId),
+        action: "delete",
+      });
+
+    case "payment_intent.canceled":
+      const paymentCanceled = event.data.object;
+      return await createOrderWebhook({
+        orderId: JSON.parse(paymentCanceled.metadata.orderId),
+        action: "delete",
+      });
+
+    default:
+      break;
+  }
+
+  res.send();
+};
+
 module.exports = {
-  addOrder,
   getOrderWait,
   getOrderShip,
   getOrderComplete,
@@ -398,5 +438,5 @@ module.exports = {
   handleUpdateConfirm,
   addOrderOff,
   addOrderOnl,
-  listenWebhook,
+  handleWebhookOrder,
 };

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { UrlImage } from "../../url";
+import { useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { FaStar } from "react-icons/fa";
-import ReactPaginate from "react-paginate";
+import { Row, Col, Card, Typography, Rate, Pagination, Menu, Spin } from "antd";
 import { getProductCategory } from "../../axios/services";
+import { UrlImage } from "../../url";
 
+const { Title, Text } = Typography;
+const { Meta } = Card;
 const URL_IMAGE = UrlImage();
+
 const ProductCategory = () => {
   const { category_id } = useParams();
   const navigate = useNavigate();
@@ -22,7 +24,6 @@ const ProductCategory = () => {
   const fetchAllProduct = async (page) => {
     try {
       let res = await getProductCategory(category_id, page);
-      console.log(res.data.products);
       setListProduct(res.data.products);
       setTotalPage(res.data.total_page);
     } catch (error) {
@@ -30,137 +31,108 @@ const ProductCategory = () => {
     }
   };
 
-  const handlePageClick = async (e) => {
-    setPage(e.selected + 1);
+  const handlePageChange = (page) => {
+    setPage(page);
   };
+
+  const renderCategoryMenu = () => (
+    <Menu mode="inline">
+      {categoriesList.map((item, index) => (
+        <Menu.SubMenu
+          key={`category-parent-${index}`}
+          title={item.category_parent}
+        >
+          {item.categories.map((category) => (
+            <Menu.Item key={`category-${category.id}`}>
+              <Link to={`/category/${category.id}`}>{category.name}</Link>
+            </Menu.Item>
+          ))}
+        </Menu.SubMenu>
+      ))}
+    </Menu>
+  );
+
   return (
-    <>
-      <div className="container">
-        <div className="row">
-          <div className="col-3">
-            <h3>DANH MỤC</h3>
-            {categoriesList &&
-              categoriesList.length > 0 &&
-              categoriesList.map((item, index) => (
-                <div key={`categoriesList-${index}`}>
-                  <div style={{ marginBottom: "20px", fontWeight: "bold" }}>
-                    {item.category_parent}
-                  </div>
-                  {item.categories.map((category) => (
-                    <Link
-                      to={`/category/${category.id}`}
-                      style={{ textDecoration: "none" }}
-                      key={category.id}
+    <div style={{ margin: "40px" }}>
+      <Row gutter={32}>
+        <Col xs={24} sm={24} md={6} lg={6}>
+          <Title level={3}>DANH MỤC</Title>
+          {categoriesList && categoriesList.length > 0 ? (
+            renderCategoryMenu()
+          ) : (
+            <Spin />
+          )}
+        </Col>
+        <Col xs={24} sm={24} md={18} lg={18}>
+          {listProduct && listProduct.length > 0 ? (
+            <>
+              <Row gutter={[16, 32]}>
+                {listProduct.map((item, index) => (
+                  <Col xs={24} sm={12} md={8} lg={6} key={`product-${index}`}>
+                    <Card
+                      hoverable
+                      cover={
+                        <img
+                          alt={item.name}
+                          src={URL_IMAGE + item.image}
+                          style={{ height: 250 }}
+                        />
+                      }
+                      onClick={() => navigate(`/detail/${item.id}`)}
                     >
-                      <p
-                        style={{
-                          marginLeft: "20px",
-                          color: "black",
-                        }}
-                      >
-                        {category.name}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              ))}
-          </div>
-          <div className="col-9">
-            <div>
-              <div
-                style={{ marginTop: "40px", marginBottom: "40px" }}
-                className="container"
-              >
-                {listProduct && listProduct.length > 0 ? (
-                  <>
-                    <div className="row">
-                      {listProduct.map((item, index) => {
-                        return (
-                          <div
-                            key={`product-${index}`}
-                            style={{ marginBottom: "50px" }}
-                            className="col-3"
+                      <Meta
+                        title={
+                          <Text
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                            }}
                           >
-                            <div>
-                              <Link to={`/detail/${item.id}`}>
-                                <img
-                                  width={"100%"}
-                                  src={URL_IMAGE + item.image}
-                                  alt=""
-                                />
-                              </Link>
-                            </div>
-                            <div>
-                              <p
-                                style={{
-                                  overflow: "hidden",
-                                  maxHeight: "2.8em",
-                                  lineHeight: "1.4em",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => navigate(`/detail/${item.id}`)}
-                              >
-                                {item.name}
-                              </p>
-                            </div>
-                            <div>
-                              <FaStar style={{ color: "#e3c01c" }} />
-                              <FaStar style={{ color: "#e3c01c" }} />
-                              <FaStar style={{ color: "#e3c01c" }} />
-                              <FaStar style={{ color: "#e3c01c" }} />
-                              <FaStar style={{ color: "#e3c01c" }} />
-                            </div>
-                            <div>
-                              <p
-                                style={{
-                                  fontWeight: "bold",
-                                }}
-                              >
-                                {item.price.toLocaleString("vi-VN")} đ
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <ReactPaginate
-                      nextLabel=" >"
-                      onPageChange={(e) => handlePageClick(e)}
-                      pageRangeDisplayed={3}
-                      marginPagesDisplayed={2}
-                      pageCount={totalPage}
-                      previousLabel="< "
-                      pageClassName="page-item"
-                      pageLinkClassName="page-link"
-                      previousClassName="page-item"
-                      previousLinkClassName="page-link"
-                      nextClassName="page-item"
-                      nextLinkClassName="page-link"
-                      breakLabel="..."
-                      breakClassName="page-item"
-                      breakLinkClassName="page-link"
-                      containerClassName="pagination"
-                      activeClassName="active"
-                      renderOnZeroPageCount={null}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div
-                      style={{
-                        textAlign: "center",
-                      }}
-                    >
-                      <h4>Không có sản phẩm !</h4>
-                    </div>
-                  </>
-                )}
-              </div>
+                            {item.name}
+                          </Text>
+                        }
+                        description={
+                          <>
+                            <Rate
+                              disabled
+                              defaultValue={5}
+                              style={{ fontSize: 12 }}
+                            />
+                            <Text
+                              strong
+                              style={{
+                                display: "block",
+                                marginTop: 8,
+                                color: "#ff4d4f",
+                              }}
+                            >
+                              {item.price.toLocaleString("vi-VN")} đ
+                            </Text>
+                          </>
+                        }
+                      />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+              <Pagination
+                current={page}
+                total={totalPage * 10}
+                onChange={handlePageChange}
+                style={{ marginTop: 32, textAlign: "center" }}
+              />
+            </>
+          ) : (
+            <div style={{ textAlign: "center" }}>
+              <Title level={4}>Không có sản phẩm !</Title>
             </div>
-          </div>
-        </div>
-      </div>
-    </>
+          )}
+        </Col>
+      </Row>
+    </div>
   );
 };
 

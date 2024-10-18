@@ -10,6 +10,9 @@ const session = require("express-session");
 const flash = require("express-flash");
 const customerRoute = require("./routes/customer");
 const adminRoute = require("./routes/admin");
+const {
+  handleWebhookOrder,
+} = require("./controllers/customer/OrderController");
 
 app.use(
   session({
@@ -26,6 +29,12 @@ configViewEngine(app);
 app.use(express.static(__dirname + "/public"));
 
 app.use(cors({ origin: true, credentials: true }));
+
+app.post(
+  "/webhook-stripe",
+  express.raw({ type: "application/json" }),
+  handleWebhookOrder
+);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

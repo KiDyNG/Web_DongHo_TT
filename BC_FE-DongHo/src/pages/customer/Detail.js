@@ -1,14 +1,14 @@
 import React from "react";
-import Header from "../../components/customer/Header/Header";
-import Footer from "../../components/customer/Footer/Footer";
+import HeaderComponent from "../../components/customer/Header/Header";
+import FooterComponent from "../../components/customer/Footer/Footer";
 import ProductDetail from "../../components/customer/ProductDetail";
 
 const Detail = () => {
   return (
     <>
-      <Header />
+      <HeaderComponent />
       <ProductDetail />
-      <Footer />
+      <FooterComponent />
     </>
   );
 };

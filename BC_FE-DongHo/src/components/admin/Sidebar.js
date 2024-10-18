@@ -1,76 +1,80 @@
 import React from "react";
-import logo from "../../assets/customer/images/logo-xd.png";
-import { AiOutlineDashboard } from "react-icons/ai";
-import { MdOutlineLogout } from "react-icons/md";
-import { IoBagOutline } from "react-icons/io5";
-import { RiProductHuntLine } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { Layout, Menu, Image, message } from "antd";
+import {
+  DashboardOutlined,
+  ShoppingOutlined,
+  ShoppingCartOutlined,
+  LogoutOutlined,
+} from "@ant-design/icons";
 import { logoutAdmin } from "../../redux/silce/admin/authSlice";
-import { toast } from "react-toastify";
+import logo from "../../assets/customer/images/logo-xd.png";
+
+const { Sider } = Layout;
+
 const Sidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const logoutClick = () => {
     dispatch(logoutAdmin()).then((res) => {
       if (res.payload && res.payload.success === true) {
-        toast.success(`${res.payload.message}`);
+        message.success(res.payload.message);
         navigate("/admin");
       }
     });
   };
+
+  const menuItems = [
+    {
+      key: "dashboard",
+      icon: <DashboardOutlined />,
+      label: "Dashboard",
+      onClick: () => navigate("/admin/dashboard"),
+    },
+    {
+      key: "orders",
+      icon: <ShoppingOutlined />,
+      label: "Đơn Hàng",
+      onClick: () => navigate("/admin/orders"),
+    },
+    {
+      key: "products",
+      icon: <ShoppingCartOutlined />,
+      label: "Sản Phẩm",
+      onClick: () => navigate("/admin/products"),
+    },
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "Đăng Xuất",
+      onClick: logoutClick,
+    },
+  ];
+
   return (
-    <div className="bg-white sidebar p-2">
-      <div className="m-2">
-        <img src={logo} alt="" width={"200px"} />
+    <Sider
+      width={200}
+      style={{
+        background: "#fff",
+        overflow: "auto",
+        height: "100vh",
+        position: "fixed",
+        left: 0,
+      }}
+    >
+      <div style={{ padding: "16px", textAlign: "center" }}>
+        <Image src={logo} alt="logo" width={150} preview={false} />
       </div>
-      <hr className="text-dark" />
-      <div>
-        <div
-          onClick={() => navigate("/admin/dashboard")}
-          style={{ cursor: "pointer" }}
-          className="list-group-item py-2"
-        >
-          <AiOutlineDashboard
-            style={{ fontSize: "30px", color: "#030303", marginRight: "5px" }}
-          />
-          <span>Dashboard</span>
-        </div>
-        <br />
-        <div
-          onClick={() => navigate("/admin/orders")}
-          style={{ cursor: "pointer" }}
-          className="list-group-item py-2 "
-        >
-          <IoBagOutline
-            style={{ fontSize: "30px", color: "#030303", marginRight: "5px" }}
-          />
-          <span>Đơn Hàng</span>
-        </div>
-        <br />
-        <div
-          onClick={() => navigate("/admin/products")}
-          style={{ cursor: "pointer" }}
-          className="list-group-item py-2 "
-        >
-          <RiProductHuntLine
-            style={{ fontSize: "30px", color: "#030303", marginRight: "5px" }}
-          />
-          <span>Sản Phẩm</span>
-        </div>
-        <br />
-        <div
-          onClick={() => logoutClick()}
-          style={{ cursor: "pointer" }}
-          className="list-group-item py-2 "
-        >
-          <MdOutlineLogout
-            style={{ fontSize: "30px", color: "#030303", marginRight: "5px" }}
-          />
-          <span>Đăng Xuất</span>
-        </div>
-      </div>
-    </div>
+      <Menu
+        mode="inline"
+        defaultSelectedKeys={["dashboard"]}
+        style={{ borderRight: 0 }}
+        items={menuItems}
+      />
+    </Sider>
   );
 };
+
 export default Sidebar;

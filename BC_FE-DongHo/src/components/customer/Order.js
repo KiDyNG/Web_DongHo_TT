@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import {
+  Row,
+  Col,
+  Form,
+  Input,
+  Radio,
+  Button,
+  Typography,
+  Space,
+  Card,
+} from "antd";
 import { getTotal } from "../../redux/silce/customer/cartSlice";
 import { authLogin } from "../../redux/silce/customer/authSilce";
 import {
@@ -8,8 +20,9 @@ import {
 } from "../../redux/silce/customer/orderSlice";
 import { clearCart } from "../../redux/silce/customer/cartSlice";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js/pure";
+
+const { Title, Text } = Typography;
 
 const Order = () => {
   const navigate = useNavigate();
@@ -27,11 +40,12 @@ const Order = () => {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [payment, setPayment] = useState("");
+  const [form] = Form.useForm();
 
   useEffect(() => {
     dispatch(authLogin());
     dispatch(getTotal());
-  }, [cart]);
+  }, [cart, dispatch]);
 
   const isValidOrder = () => {
     if (isAuth === null) {
@@ -94,12 +108,15 @@ const Order = () => {
         );
         dispatch(addOrderOnl(data_order)).then((result) => {
           if (result.payload.success === true) {
-            const res = stripe.redirectToCheckout({
-              sessionId: result.payload.id,
-            });
-            if (res.error) {
-              console.log(res.error);
-            }
+            stripe
+              .redirectToCheckout({
+                sessionId: result.payload.id,
+              })
+              .then((res) => {
+                if (res.error) {
+                  console.log(res.error);
+                }
+              });
           }
         });
       }
@@ -108,130 +125,117 @@ const Order = () => {
 
   return (
     <div style={{ marginTop: "100px" }} className="container-fluid">
-      <h4>CHI TIẾT ĐẶT HÀNG</h4>
-      <div className="row">
-        <div className="col-6">
-          <hr />
-          <form>
-            <div className="row">
-              <div className="col-6">
-                <div className="form-group">
-                  <label htmlFor="exampleInputPassword1">Người nhận hàng</label>
-                  <p style={{ color: "#cd3f34" }}>*</p>
-                  <input
-                    style={{ height: "50px", borderColor: "gray" }}
-                    type="text"
-                    className="form-control"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="col-6">
-                <div className="form-group">
-                  <label htmlFor="exampleInputPassword1">Số điện thoại</label>
-                  <p style={{ color: "#cd3f34" }}>*</p>
-                  <input
-                    style={{ height: "50px", borderColor: "gray" }}
-                    type="text"
-                    className="form-control"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-            <br />
-            <div className="form-group">
-              <label htmlFor="exampleInputPassword1">Địa chỉ nhận hàng</label>
-              <p style={{ color: "#cd3f34" }}>*</p>
-              <input
-                style={{ height: "50px", borderColor: "gray" }}
-                type="text"
-                className="form-control"
-                value={address}
-                onChange={(event) => setAddress(event.target.value)}
-              />
-            </div>
-          </form>
-        </div>
-        <div className="col-6">
-          <div
-            style={{
-              margin: "auto",
-              width: "70%",
-              height: "350px",
-              backgroundColor: "#f5f5f5",
-            }}
-          >
-            <div style={{ paddingLeft: "50px", paddingTop: "40px" }}>
-              <h5>THÀNH TIỀN</h5>
-              <div style={{ marginTop: "20px" }} className="row">
-                <div className="col-6">
-                  <h6>TỔNG</h6>
-                </div>
-                <div className="col-6">
-                  <p style={{ color: "#ce1515 ", fontWeight: "bold" }}>
-                    {cartTotalAmount.toLocaleString("vi-VN")} đ
-                  </p>
-                </div>
-              </div>
-              <div>
-                <h6>Phương thức thanh toán</h6>
-                <div style={{ marginTop: "20px" }} className="form-check">
-                  <input
-                    style={{ borderColor: "#4e7661" }}
-                    className="form-check-input"
-                    type="radio"
-                    name="flexRadioDefault"
-                    value={"off"}
-                    onChange={(event) => setPayment(event.target.value)}
-                  />
-                  <label
-                    className="form-check-label"
-                    htmlFor="flexRadioDefault1"
+      <Title level={4}>CHI TIẾT ĐẶT HÀNG</Title>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={12}>
+          <Card>
+            <Form form={form} layout="vertical">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="name"
+                    label={
+                      <>
+                        Người nhận hàng <Text type="danger">*</Text>
+                      </>
+                    }
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập tên người nhận",
+                      },
+                    ]}
                   >
-                    Thanh toán khi nhận hàng
-                  </label>
-                </div>
-                <div style={{ marginTop: "20px" }} className="form-check">
-                  <input
-                    style={{ borderColor: "#4e7661" }}
-                    className="form-check-input"
-                    type="radio"
-                    name="flexRadioDefault"
-                    value={"online"}
-                    onChange={(event) => setPayment(event.target.value)}
-                  />
-                  <label
-                    className="form-check-label"
-                    htmlFor="flexRadioDefault2"
+                    <Input
+                      style={{ height: "50px" }}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="phone"
+                    label={
+                      <>
+                        Số điện thoại <Text type="danger">*</Text>
+                      </>
+                    }
+                    rules={[
+                      {
+                        required: true,
+                        message: "Vui lòng nhập số điện thoại",
+                      },
+                    ]}
                   >
-                    Thanh toán Online
-                  </label>
-                </div>
-              </div>
-              <div style={{ marginTop: "20px" }}>
-                <button
-                  style={{
-                    width: "80%",
-                    height: "45px",
-                    border: "none",
-                    borderRadius: "15px",
-                    margin: "auto",
-                    backgroundColor: "#4e7661",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                  onClick={() => orderClick()}
-                >
-                  {isLoadingOrder === true ? "LOADING..." : "Đặt Hàng"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                    <Input
+                      style={{ height: "50px" }}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Form.Item
+                name="address"
+                label={
+                  <>
+                    Địa chỉ nhận hàng <Text type="danger">*</Text>
+                  </>
+                }
+                rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+              >
+                <Input
+                  style={{ height: "50px" }}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+        <Col xs={24} md={12}>
+          <Card style={{ backgroundColor: "#f5f5f5", height: "100%" }}>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Title level={5}>THÀNH TIỀN</Title>
+              <Row>
+                <Col span={12}>
+                  <Text strong>
+                    TỔNG:{" "}
+                    <span style={{ color: "#ce1515", fontWeight: "bold" }}>
+                      {cartTotalAmount.toLocaleString("vi-VN")} đ
+                    </span>
+                  </Text>
+                </Col>
+              </Row>
+              <Text strong>Phương thức thanh toán</Text>
+              <Radio.Group
+                onChange={(e) => setPayment(e.target.value)}
+                value={payment}
+              >
+                <Space direction="vertical">
+                  <Radio value="off">Thanh toán khi nhận hàng</Radio>
+                  <Radio value="online">Thanh toán Online</Radio>
+                </Space>
+              </Radio.Group>
+              <Button
+                type="primary"
+                style={{
+                  width: "100%",
+                  height: "45px",
+                  borderRadius: "15px",
+                  backgroundColor: "#4e7661",
+                  fontWeight: "bold",
+                }}
+                onClick={orderClick}
+                loading={isLoadingOrder}
+              >
+                {isLoadingOrder ? "LOADING..." : "Đặt Hàng"}
+              </Button>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };
