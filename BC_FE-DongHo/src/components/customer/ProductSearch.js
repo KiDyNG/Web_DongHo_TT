@@ -1,121 +1,116 @@
 import React, { useEffect, useState } from "react";
-import { UrlImage } from "../../url";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FaStar } from "react-icons/fa";
-import ReactPaginate from "react-paginate";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Row, Col, Card, Typography, Rate, Pagination, Empty } from "antd";
 import { getProductSearch } from "../../axios/services";
+import { UrlImage } from "../../url";
 
+const { Title, Text } = Typography;
+const { Meta } = Card;
 const URL_IMAGE = UrlImage();
+
 const ProductSearch = () => {
   const navigate = useNavigate();
   const [listProduct, setListProduct] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
   const location = useLocation();
-  let name = new URLSearchParams(location.search).get("name");
+  const name = new URLSearchParams(location.search).get("name");
 
-  const fetchProductSearch = async (page) => {
+  const fetchProductSearch = async (currentPage) => {
     try {
-      let res = await getProductSearch(name, page);
-      console.log(res.data);
+      let res = await getProductSearch(name, currentPage);
       setListProduct(res.data.products);
       setTotalPage(res.data.total_page);
     } catch (error) {
       console.log(error);
     }
   };
+
   useEffect(() => {
     fetchProductSearch(page);
   }, [page, name]);
 
-  const handlePageClick = (e) => {
-    setPage(e.selected + 1);
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
   };
+
   return (
-    <div
-      style={{ marginTop: "40px", marginBottom: "40px" }}
-      className="container"
-    >
-      <h3 style={{ marginBottom: "20px", color: "gray", textAlign: "center" }}>
+    <div style={{ padding: "40px" }}>
+      <Title
+        level={3}
+        style={{ marginBottom: "20px", color: "gray", textAlign: "center" }}
+      >
         SẢN PHẨM CẦN TÌM
-      </h3>
+      </Title>
 
       {listProduct && listProduct.length > 0 ? (
         <>
-          <div className="row">
-            {listProduct.map((item, index) => {
-              return (
-                <div
-                  key={`product-${index}`}
-                  style={{ marginBottom: "50px" }}
-                  className="col-3"
+          <Row gutter={[16, 32]}>
+            {listProduct.map((item, index) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={`product-${index}`}>
+                <Card
+                  hoverable
+                  cover={
+                    <img
+                      alt={item.name}
+                      src={URL_IMAGE + item.image}
+                      style={{ height: 280 }}
+                    />
+                  }
+                  onClick={() => navigate(`/detail/${item.id}`)}
                 >
-                  <div>
-                    <Link to={`/detail/${item.id}`}>
-                      <img width={"100%"} src={URL_IMAGE + item.image} alt="" />
-                    </Link>
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        overflow: "hidden",
-                        maxHeight: "2.8em",
-                        lineHeight: "1.4em",
-                        textAlign: "center",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => navigate(`/detail/${item.id}`)}
-                    >
-                      {item.name}
-                    </p>
-                  </div>
-                  <div>
-                    <FaStar style={{ color: "#e3c01c" }} />
-                    <FaStar style={{ color: "#e3c01c" }} />
-                    <FaStar style={{ color: "#e3c01c" }} />
-                    <FaStar style={{ color: "#e3c01c" }} />
-                    <FaStar style={{ color: "#e3c01c" }} />
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: "bold" }}>
-                      {item.price.toLocaleString("vi-VN")} đ
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <ReactPaginate
-            nextLabel=" >"
-            onPageChange={(e) => handlePageClick(e)}
-            pageRangeDisplayed={3}
-            marginPagesDisplayed={2}
-            pageCount={totalPage}
-            previousLabel="< "
-            pageClassName="page-item"
-            pageLinkClassName="page-link"
-            previousClassName="page-item"
-            previousLinkClassName="page-link"
-            nextClassName="page-item"
-            nextLinkClassName="page-link"
-            breakLabel="..."
-            breakClassName="page-item"
-            breakLinkClassName="page-link"
-            containerClassName="pagination"
-            activeClassName="active"
-            renderOnZeroPageCount={null}
+                  <Meta
+                    title={
+                      <Text
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          height: "3em",
+                          textAlign: "center",
+                        }}
+                      >
+                        {item.name}
+                      </Text>
+                    }
+                    description={
+                      <>
+                        <Rate
+                          disabled
+                          defaultValue={5}
+                          style={{ fontSize: 12 }}
+                        />
+                        <Text
+                          strong
+                          style={{
+                            display: "block",
+                            marginTop: 8,
+                            color: "#ff4d4f",
+                          }}
+                        >
+                          {item.price.toLocaleString("vi-VN")} đ
+                        </Text>
+                      </>
+                    }
+                  />
+                </Card>
+              </Col>
+            ))}
+          </Row>
+          <Pagination
+            current={page}
+            total={totalPage * 10} // Assuming 10 items per page
+            onChange={handlePageChange}
+            style={{ marginTop: 32, textAlign: "center" }}
           />
         </>
       ) : (
-        <>
-          <div
-            style={{
-              textAlign: "center",
-            }}
-          >
-            <h4>Không tìm thấy sản phẩm</h4>
-          </div>
-        </>
+        <Empty
+          description={<span>Không tìm thấy sản phẩm</span>}
+          style={{ margin: "40px 0" }}
+        />
       )}
     </div>
   );

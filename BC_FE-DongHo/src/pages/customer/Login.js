@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Header from "../../components/customer/Header/Header";
-import Footer from "../../components/customer/Footer/Footer";
+import HeaderComponent from "../../components/customer/Header/Header";
+import FooterComponent from "../../components/customer/Footer/Footer";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "../../redux/silce/customer/authSilce";
@@ -59,7 +59,7 @@ const Login = () => {
   };
   return (
     <>
-      <Header />
+      <HeaderComponent />
       <div
         className="container"
         style={{ marginTop: "100px", marginBottom: "100px" }}
@@ -157,16 +157,14 @@ const Login = () => {
           </div>
           <div className="col-sm-6">
             <img
-              src={
-                "https://wallpapercave.com/wp/wp10259666.jpg"
-              }
+              src={"https://wallpapercave.com/wp/wp10259666.jpg"}
               alt=""
               width={"100%"}
             />
           </div>
         </div>
       </div>
-      <Footer />
+      <FooterComponent />
     </>
   );
 };

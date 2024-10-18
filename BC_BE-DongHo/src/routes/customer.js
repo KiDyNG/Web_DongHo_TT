@@ -65,6 +65,4 @@ router.get(
 );
 router.post("/rate", middleware.middlewareCustomer, RateController.handleRate);
 
-router.post("/webhook/order", OrderController.listenWebhook);
-
 module.exports = router;

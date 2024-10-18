@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Table, Space, Button, Typography, Modal, message } from "antd";
+import { DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import Nav from "../../components/admin/Nav";
 import Sidebar from "../../components/admin/Sidebar";
-import { getOrder } from "../../axios/services";
-import ReactPaginate from "react-paginate";
-import { RiDeleteBin6Fill } from "react-icons/ri";
-import { FaEye } from "react-icons/fa";
 import ModalOrder from "../../components/admin/ModalOrder";
+import { getOrder } from "../../axios/services";
 import {
   getOrderDetail,
   handleConfirmOrder,
   handleDeleteOrder,
 } from "../../redux/silce/admin/orderSlice";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+
+const { Title } = Typography;
 
 const OrderManage = () => {
   const navigate = useNavigate();
@@ -22,78 +23,47 @@ const OrderManage = () => {
   );
   const isAuth = useSelector((state) => state.admin.auth.isAuth);
   const [toggle, setToggle] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(0);
   const [listOrder, setListOrder] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [dataOrder, setDataOrder] = useState({});
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
+
   const Toggle = () => {
     setToggle(!toggle);
   };
+
   useEffect(() => {
     if (isAuth && isAuth.detail) {
       navigate("/admin");
     }
     fetchAllOrder();
-  }, [page, isSuccessConfirmOrder, isSuccessDeleteOrder, isAuth]);
+  }, [
+    pagination.current,
+    isSuccessConfirmOrder,
+    isSuccessDeleteOrder,
+    isAuth,
+    navigate,
+  ]);
 
   const fetchAllOrder = async () => {
     try {
-      const res = await getOrder(page);
+      const res = await getOrder(pagination.current);
       setListOrder(res.data.orders);
-      setTotalPage(res.data.total_page);
+      setPagination((prev) => ({
+        ...prev,
+        total: res.data.total_page * pagination.pageSize,
+      }));
     } catch (error) {
       console.log(error);
     }
   };
-  const handlePageClick = (e) => {
-    setPage(e.selected + 1);
-  };
-  const displayStatus = (status, order_id) => {
-    let statusContent;
-    switch (status) {
-      case 0:
-        statusContent = (
-          <div>
-            <button
-              onClick={() => confirmClick(order_id)}
-              style={{ width: "140px" }}
-              type="button"
-              className="btn btn-success"
-            >
-              Duyệt
-            </button>
-          </div>
-        );
-        break;
-      case 1:
-        statusContent = (
-          <div>
-            <p style={{ color: "#01bacf" }}>Đang giao</p>
-          </div>
-        );
-        break;
-      case 2:
-        statusContent = (
-          <div>
-            <p style={{ color: "#198754" }}>Hoàn thành</p>
-          </div>
-        );
-        break;
-      case 3:
-        statusContent = (
-          <div>
-            <p style={{ color: "#ce1515" }}>Đã hủy</p>
-          </div>
-        );
-        break;
 
-      default:
-        statusContent = <div>Invalid star value</div>;
-        break;
-    }
-
-    return statusContent;
+  const handleTableChange = (pagination) => {
+    setPagination(pagination);
   };
 
   const OrderDetail = (order) => {
@@ -104,6 +74,7 @@ const OrderManage = () => {
       }
     });
   };
+
   const handleClose = () => {
     setShowModal(false);
   };
@@ -113,8 +84,67 @@ const OrderManage = () => {
   };
 
   const deleteClick = (order_id) => {
-    dispatch(handleDeleteOrder(order_id));
+    Modal.confirm({
+      title: "Bạn có chắc chắn muốn xóa đơn hàng này?",
+      content: "Hành động này không thể hoàn tác.",
+      onOk() {
+        dispatch(handleDeleteOrder(order_id));
+      },
+    });
   };
+
+  const columns = [
+    { title: "STT", dataIndex: "index", key: "index" },
+    { title: "Tên", dataIndex: "name", key: "name" },
+    {
+      title: "Trạng Thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status, record) => {
+        switch (status) {
+          case 0:
+            return (
+              <Button type="primary" onClick={() => confirmClick(record.id)}>
+                Duyệt
+              </Button>
+            );
+          case 1:
+            return <span style={{ color: "#01bacf" }}>Đang giao</span>;
+          case 2:
+            return <span style={{ color: "#198754" }}>Hoàn thành</span>;
+          case 3:
+            return <span style={{ color: "#ce1515" }}>Đã hủy</span>;
+          default:
+            return "Không xác định";
+        }
+      },
+    },
+    { title: "SĐT", dataIndex: "phone", key: "phone" },
+    { title: "Địa Chỉ", dataIndex: "address", key: "address" },
+    {
+      title: "Tổng Tiền",
+      dataIndex: "total",
+      key: "total",
+      render: (total) => `${total.toLocaleString("vi-VN")} đ`,
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Space size="middle">
+          <DeleteOutlined
+            onClick={() => deleteClick(record.id)}
+            style={{ color: "#dc0000", fontSize: 20 }}
+          />
+          <EyeOutlined
+            onClick={() => OrderDetail(record)}
+            style={{ color: "#5bc0de", fontSize: 20 }}
+          />
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <>
       <ModalOrder
@@ -123,10 +153,10 @@ const OrderManage = () => {
         handleClose={handleClose}
       />
       <div
+        className="container-fluid bg min-vh-100"
         style={{ backgroundColor: "#f0f0f0" }}
-        className="container-fluid bg min-vh-100 "
       >
-        <div className="row ">
+        <div className="row">
           {toggle && (
             <div className="col-4 col-md-2 bg-white vh-100 position-fixed">
               <Sidebar />
@@ -136,85 +166,24 @@ const OrderManage = () => {
           <div className="col">
             <div className="px-3">
               <Nav Toggle={Toggle} />
-              <div className="container-fluid"></div>
-              <table className="table caption-top bg-white rounded mt-2">
-                <caption style={{ color: "#14134f " }} className="text fs-4">
+              <div className="container-fluid">
+                <Title level={4} style={{ color: "#14134f", marginTop: 16 }}>
                   QUẢN LÝ ĐƠN HÀNG
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">STT</th>
-                    <th scope="col">Tên</th>
-                    <th scope="col">Trạng Thái</th>
-                    <th scope="col">SĐT</th>
-                    <th scope="col">Địa Chỉ</th>
-                    <th scope="col">Tổng Tiền</th>
-                    <th scope="col">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listOrder &&
-                    listOrder.length > 0 &&
-                    listOrder.map((item, index) => {
-                      const displayIndex = (page - 1) * 5 + index + 1;
-                      return (
-                        <tr key={index}>
-                          <th scope="row">{displayIndex}</th>
-                          <td>{item.name}</td>
-                          <td>{displayStatus(item.status, item.id)}</td>
-                          <td>{item.phone}</td>
-                          <td>{item.address}</td>
-                          <td
-                            style={{
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {item.total.toLocaleString("vi-VN")} đ
-                          </td>
-                          <td>
-                            <RiDeleteBin6Fill
-                              style={{
-                                fontSize: "25px",
-                                marginRight: "10px",
-                                cursor: "pointer",
-                                color: "#dc0000",
-                              }}
-                              onClick={() => deleteClick(item.id)}
-                            />
-                            <FaEye
-                              onClick={() => OrderDetail(item)}
-                              style={{
-                                fontSize: "25px",
-                                cursor: "pointer",
-                                color: "#5bc0de",
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-              <ReactPaginate
-                nextLabel=" >"
-                onPageChange={(e) => handlePageClick(e)}
-                pageRangeDisplayed={3}
-                marginPagesDisplayed={2}
-                pageCount={totalPage}
-                previousLabel="< "
-                pageClassName="page-item"
-                pageLinkClassName="page-link"
-                previousClassName="page-item"
-                previousLinkClassName="page-link"
-                nextClassName="page-item"
-                nextLinkClassName="page-link"
-                breakLabel="..."
-                breakClassName="page-item"
-                breakLinkClassName="page-link"
-                containerClassName="pagination"
-                activeClassName="active"
-                renderOnZeroPageCount={null}
-              />
+                </Title>
+                <Table
+                  columns={columns}
+                  dataSource={listOrder.map((item, index) => ({
+                    ...item,
+                    key: item.id,
+                    index:
+                      (pagination.current - 1) * pagination.pageSize +
+                      index +
+                      1,
+                  }))}
+                  pagination={pagination}
+                  onChange={handleTableChange}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -222,4 +191,5 @@ const OrderManage = () => {
     </>
   );
 };
+
 export default OrderManage;

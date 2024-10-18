@@ -1,16 +1,16 @@
 import React from "react";
-import Header from "../../components/customer/Header/Header";
+import HeaderComponent from "../../components/customer/Header/Header";
 import Banner from "../../components/customer/Banner";
 import ProductHome from "../../components/customer/ProductHome";
-import Footer from "../../components/customer/Footer/Footer";
+import FooterComponent from "../../components/customer/Footer/Footer";
 
 const Home = () => {
   return (
     <>
-      <Header />
+      <HeaderComponent />
       <Banner />
       <ProductHome />
-      <Footer />
+      <FooterComponent />
     </>
   );
 };

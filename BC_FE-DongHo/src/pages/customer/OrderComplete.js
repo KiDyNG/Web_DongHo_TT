@@ -1,12 +1,27 @@
-import React, { useEffect, useState } from "react";
-import Header from "../../components/customer/Header/Header";
-import Footer from "../../components/customer/Footer/Footer";
-import { FaHome } from "react-icons/fa";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  Layout,
+  Typography,
+  List,
+  Card,
+  Image,
+  Button,
+  Row,
+  Col,
+  Empty,
+  Space,
+} from "antd";
+import { HomeOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { getOrderComplete } from "../../redux/silce/customer/orderSlice";
 import { UrlImage } from "../../url";
 import OrderStatus from "../../components/customer/OrderStatus";
+import HeaderComponent from "../../components/customer/Header/Header";
+import FooterComponent from "../../components/customer/Footer/Footer";
+
+const { Content } = Layout;
+const { Title, Text } = Typography;
 
 const OrderComplete = () => {
   const navigate = useNavigate();
@@ -16,12 +31,13 @@ const OrderComplete = () => {
   const isAuth = useSelector((state) => state.customer.auth.isAuthError);
   const orders = useSelector((state) => state.customer.order.orderComplete);
   const rates = useSelector((state) => state.customer.order.orderRate);
+
   useEffect(() => {
     if (isAuth && isAuth.detail) {
       navigate("/login");
     }
     dispatch(getOrderComplete(user_id));
-  }, [isAuth]);
+  }, [isAuth, dispatch, navigate, user_id]);
 
   const isRated = (productId, orderId) => {
     return rates.some(
@@ -31,124 +47,91 @@ const OrderComplete = () => {
   };
 
   return (
-    <>
-      <Header />
-      <div style={{ height: "1000px" }} className="container">
-        <h4 style={{ marginBottom: "40px" }}>ĐƠN HÀNG ĐÃ HOÀN THÀNH</h4>
-        <div
-          className="container"
-          style={{ height: "50px", marginTop: "20px" }}
-        >
-          <OrderStatus />
-          <div className="container" style={{ marginTop: "50px" }}>
-            {orders && orders.length > 0 ? (
-              <>
-                {orders.map((order, index) => {
-                  return (
-                    <div key={`order-${index}`}>
-                      {order.Order_Products.map((item, itemIndex) => {
-                        return (
-                          <div
-                            style={{ marginBottom: "20px" }}
-                            className="row"
-                            key={`item-${index}-${itemIndex}`}
+    <Layout>
+      <HeaderComponent />
+      <Content style={{ padding: "0 50px", minHeight: 500 }}>
+        <Title level={4} style={{ marginBottom: 40 }}>
+          ĐƠN HÀNG ĐÃ HOÀN THÀNH
+        </Title>
+        <OrderStatus />
+        {orders && orders.length > 0 ? (
+          <List
+            dataSource={orders}
+            renderItem={(order, orderIndex) => (
+              <Card key={`order-${orderIndex}`} style={{ marginBottom: 20 }}>
+                <List
+                  dataSource={order.Order_Products}
+                  renderItem={(item, itemIndex) => (
+                    <List.Item key={`item-${orderIndex}-${itemIndex}`}>
+                      <Row gutter={16} style={{ width: "100%" }}>
+                        <Col xs={24} sm={6} md={4}>
+                          <Image
+                            width={120}
+                            src={URL_IMAGE + item.Product.image}
+                            alt={item.Product.name}
+                          />
+                        </Col>
+                        <Col xs={24} sm={18} md={20}>
+                          <Space
+                            direction="vertical"
+                            size="small"
+                            style={{ width: "100%" }}
                           >
-                            <div className="col-3">
-                              <div>
-                                <img
-                                  width={"120px"}
-                                  src={URL_IMAGE + item.Product.image}
-                                  alt=""
-                                />
-                              </div>
-                            </div>
-                            <div className="col-9">
-                              <p style={{ fontSize: "17px" }}>
-                                {item.Product.name}
-                              </p>
-                              <p style={{ fontSize: "17px" }}>
-                                x {item.quantity}
-                              </p>
-                              <p
+                            <Text strong style={{ fontSize: 17 }}>
+                              {item.Product.name}
+                            </Text>
+                            <Text style={{ fontSize: 17 }}>
+                              x {item.quantity}
+                            </Text>
+                            <Text strong style={{ fontSize: 18 }}>
+                              {item.Product.price.toLocaleString("vi-VN")} đ
+                            </Text>
+                            {!isRated(item.ProductId, order.id) ? (
+                              <Button
+                                type="primary"
                                 style={{
-                                  fontWeight: "bold",
-                                  fontSize: "18px",
+                                  backgroundColor: "#01bacf",
+                                  borderColor: "#01bacf",
                                 }}
+                                onClick={() =>
+                                  navigate(
+                                    `/rate?order_id=${order.id}&product_id=${item.ProductId}&user_id=${order.UserId}`
+                                  )
+                                }
                               >
-                                {item.Product.price.toLocaleString("vi-VN")} đ
-                              </p>
-
-                              <div>
-                                {!isRated(item.ProductId, order.id) ? (
-                                  <button
-                                    style={{
-                                      width: "150px",
-                                      height: "45px",
-                                      border: "none",
-                                      borderRadius: "10px",
-                                      backgroundColor: "#01bacf",
-                                      color: "white",
-                                      fontWeight: "bold",
-                                    }}
-                                    onClick={() =>
-                                      navigate(
-                                        `/rate?order_id=${order.id}&product_id=${item.ProductId}&user_id=${order.UserId}`
-                                      )
-                                    }
-                                  >
-                                    Đánh giá
-                                  </button>
-                                ) : (
-                                  <div>
-                                    <button
-                                      style={{
-                                        width: "150px",
-                                        height: "45px",
-                                        border: "none",
-                                        borderRadius: "10px",
-                                        backgroundColor: "gray",
-                                        color: "white",
-                                        fontWeight: "bold",
-                                      }}
-                                      disabled
-                                    >
-                                      Đã đánh giá
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="row">
-                        <div className="col-6">
-                          <i style={{ fontSize: "14px", color: "#19c37d" }}>
-                            Đơn hàng đã được giao thành công !
-                          </i>
-                        </div>
-                        <div className="col-6">
-                          <p style={{ fontSize: "17px", fontWeight: "bold" }}>
-                            Thành tiền:
-                            <span>{order.total.toLocaleString("vi-VN")} đ</span>
-                          </p>
-                        </div>
-                      </div>
-                      <hr />
-                    </div>
-                  );
-                })}
-              </>
-            ) : (
-              <div style={{ textAlign: "center" }}>
-                <h5>Chưa có đơn hàng nào hoàn thành</h5>
-              </div>
+                                Đánh giá
+                              </Button>
+                            ) : (
+                              <Button disabled>Đã đánh giá</Button>
+                            )}
+                          </Space>
+                        </Col>
+                      </Row>
+                    </List.Item>
+                  )}
+                />
+                <Row gutter={16} style={{ marginTop: 20 }}>
+                  <Col xs={24} sm={12}>
+                    <Text italic style={{ color: "#19c37d", fontSize: 14 }}>
+                      <CheckCircleOutlined /> Đơn hàng đã được giao thành công !
+                    </Text>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Text strong style={{ fontSize: 17 }}>
+                      Thành tiền: {order.total.toLocaleString("vi-VN")} đ
+                    </Text>
+                  </Col>
+                </Row>
+              </Card>
             )}
-          </div>
-        </div>
-      </div>
-      <Footer />
-    </>
+          />
+        ) : (
+          <Empty description={<span>Chưa có đơn hàng nào hoàn thành</span>} />
+        )}
+      </Content>
+      <FooterComponent />
+    </Layout>
   );
 };
+
 export default OrderComplete;
