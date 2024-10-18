@@ -81,6 +81,24 @@ export const handleDeleteOrder = createAsyncThunk(
   }
 );
 
+export const getStatistical = createAsyncThunk(
+  "order/getStatistical",
+  async (payload) => {
+    try {
+      const res = await axios.get(
+        URL_API +
+          `/admin/statistical?year=${payload.year}&month=${payload.month}`,
+        {
+          withCredentials: true,
+        }
+      );
+      return await res.data;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+);
+
 export const orderSlice = createSlice({
   name: "admin/order",
   initialState,
